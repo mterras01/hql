@@ -1,0 +1,47 @@
+//CODE: CPATIHPOSTSAUMCOFLEYRDD_050521
+//Libelle: Compteur patients hospitalisés post-SAU-MCO Fleyriat_DD_050521
+
+SELECT:
+HB3 YEAR(acte.edgr_date) AS ANNEE_ACTE,
+mesure.cage_code ||'-'|| mesure.cage_libelle AS TYPE_MODE_LEGAL,
+COUNT(DISTINCT patient.id) AS PATIENTS
+
+FROM:
+Ide_patient AS patient
+JOIN patient.pms_mode_legals AS modelegal
+JOIN modelegal.bas_catalogue_gen_by_Mlgl_id_cage AS mesure
+JOIN patient.ide_sejours AS sejour
+JOIN sejour.bas_etablissement_by_Sejo_id_etab_con AS etab
+JOIN sejour.bas_catalogue_pers_by_Sejo_id_cape_ven AS typsej
+JOIN sejour.bas_uf_by_Sejo_id_unfo_heb_courant AS ufh
+JOIN ufh.bas_uf_by_Unfo_id_unfo_grp AS grp
+JOIN sejour.pms_edgars AS redg
+JOIN redg.pms_edgar_actes AS acte
+JOIN acte.pms_raas AS raa
+JOIN acte.bas_catalogue_gen_by_Edgr_id_cage_nature AS type
+JOIN acte.bas_catalogue_gen_by_Edgr_id_cage_lieu as lieu
+JOIN patient.ide_sejours AS sejour2
+JOIN sejour2.bas_etablissement_by_Sejo_id_etab_con AS etab2
+JOIN sejour2.bas_catalogue_pers_by_Sejo_id_cape_ven AS typsej2
+JOIN sejour2.bas_uf_by_Sejo_id_unfo_heb_courant AS ufh2
+JOIN ufh2.bas_uf_by_Unfo_id_unfo_grp AS grp2
+ 
+WHERE:
+etab.id = <ETAB>
+AND etab2.id = etab.id
+AND patient.pati_nip != '140374'
+AND sejour.sejo_ind_incomplet!=1
+AND sejour.sejo_dat_sup IS NULL
+AND typsej.cape_code = 'M'
+AND sejour2.sejo_ind_incomplet!=1
+AND sejour2.sejo_dat_sup IS NULL
+AND typsej2.cape_code = 'H'
+AND acte.edgr_date BETWEEN INVITE(D:Acte SAU MCO Fleyriat entre le ) AND INVITE(D: et le )
+AND ufh.unfo_code = '0103'
+AND lieu.cage_code IN ('L09','L10')
+AND sejour2.sejo_dat_deb > acte.edgr_date
+AND (sejour2.sejo_dat_deb-acte.edgr_date) <= 1
+AND sejour2.sejo_dat_deb BETWEEN modelegal.mlgl_dat_deb_val AND NVL(modelegal.mlgl_dat_fin_val, current_date)
+
+GROUP BY:
+YEAR(acte.edgr_date), mesure.cage_code ||'-'|| mesure.cage_libelle
