@@ -1,0 +1,41 @@
+//CODE: CANPRESM3HEURESHDJUNIT_070521
+//Libelle: Compteur annuel présences HDJ<3h01/UNITE_070521
+//objet: présences moins de 3H/unité, 3 dernières années
+
+SELECT:
+HB3 YEAR(mouv.mouv_dat_mou) AS ANNEE, 
+grp.unfo_libelle ||'-'|| ufm.codeLibelle AS UFM,
+COUNT(DISTINCT patient.id) AS PATIENTS_MOINS_3H,
+COUNT(DISTINCT mouv.id) AS VENUES_MOINS3H
+
+FROM:
+Ide_patient AS patient
+JOIN patient.ide_sejours AS sejour
+JOIN sejour.bas_etablissement_by_Sejo_id_etab_con AS etab
+JOIN sejour.bas_uf_by_Sejo_id_unfo_med_courant as ufm
+JOIN ufm.bas_uf_by_Unfo_id_unfo_grp as grp
+JOIN sejour.bas_catalogue_pers_by_Sejo_id_cape_ven AS typsej
+JOIN sejour.ide_mouvements AS mouv
+JOIN mouv.bas_catalogue_gen_by_Mouv_id_cage AS cage
+JOIN sejour.ide_mouvements AS mouv2
+JOIN mouv2.bas_catalogue_gen_by_Mouv_id_cage AS cage2
+
+WHERE:
+etab.id = <ETAB>
+AND mouv.mouv_dat_mou BETWEEN INVITE(D: Mouvements saisis entre le) AND INVITE(D: et le)
+AND patient.pati_nip != '140374'
+AND sejour.sejo_dat_sup is null
+AND sejour.sejo_ind_incomplet != '1'
+AND typsej.cape_code = 'J'
+AND cage.cage_code = 'C'
+AND ufm.id IN INVITE(b:UF_MED_FILT_VAL:UFM)
+AND mouv2.id = (SELECT MIN(mou2.id) 
+    FROM sejour.ide_mouvements as mou2
+    JOIN mou2.bas_catalogue_gen_by_Mouv_id_cage AS cage22
+    WHERE TRUNC(mou2.mouv_dat_mou) = TRUNC(mouv.mouv_dat_mou)
+    AND mou2.mouv_dat_mou > mouv.mouv_dat_mou
+    AND cage22.cage_code = 'P')
+AND (mouv2.mouv_dat_mou-mouv.mouv_dat_mou)*24 < 3.016
+
+GROUP BY:
+YEAR(mouv.mouv_dat_mou), grp.unfo_libelle ||'-'|| ufm.codeLibelle
