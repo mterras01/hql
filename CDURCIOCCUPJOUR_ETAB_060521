@@ -1,0 +1,37 @@
+//CODE: CDURCIOCCUPJOUR_ETAB_060521
+//Libelle: Compteur durées d'occupation en jours des lits CI_DD_ETAB_060521
+
+SELECT:
+HB3 YEAR(cal.dcal_date) AS ANNEE,
+ufh.codeLibelle AS UNITE,
+chb.chas_libelle AS CHAMBRE,
+(NVL(mou0.mouv_dat_fin_partielle, current_date)-mou0.mouv_dat_mou) AS JOURS_CI_OCCUPEE,
+COUNT(DISTINCT patient.id) AS PATI_EN_CI,
+COUNT(DISTINCT mou0.id) AS MOUV_EN_CI
+
+FROM:
+Sid_psy_calendar AS cal
+,Pad_lit_poste AS lip 
+INNER JOIN lip.pad_chambre_salle AS chb 
+INNER JOIN chb.pad_categorie_chb_salle AS cat_chambre
+INNER JOIN chb.bas_uf AS ufh
+INNER JOIN chb.bas_etablissement AS etab
+LEFT OUTER JOIN lip.ide_mouvements AS mou0
+LEFT OUTER JOIN mou0.ide_sejour AS sejour 
+LEFT OUTER JOIN sejour.ide_patient as patient
+
+WHERE:
+etab.id = <ETAB>
+AND patient.pati_nip != '140374'
+AND cal.dcal_date BETWEEN INVITE(D: Jours d'occupation des lits de CI entre le ) AND INVITE(D: et le )
+AND sejour.sejo_dat_sup IS NULL
+AND sejour.sejo_ind_incomplet!=1
+AND ufh.id in INVITE(c:UF_HEB_FILTRES:UFH)
+AND cat_chambre.cacs_libelle LIKE '%isolement'
+AND TRUNC(NVL(chb.chas_dat_fin_val, current_date)) >= TRUNC(cal.dcal_date)
+AND NVL(chb.chas_dat_deb_val, current_date) <= TRUNC(cal.dcal_date)
+AND (TRUNC(mou0.mouv_dat_mou) <= TRUNC(cal.dcal_date) 
+     AND TRUNC(NVL(mou0.mouv_dat_fin_partielle, current_date)) >= TRUNC(cal.dcal_date))
+	 
+GROUP BY:
+YEAR(cal.dcal_date), ufh.codeLibelle, chb.chas_libelle, (NVL(mou0.mouv_dat_fin_partielle, current_date)-mou0.mouv_dat_mou)
