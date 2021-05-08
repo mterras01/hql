@@ -1,0 +1,64 @@
+//CODE: CRA_AMBURAAUNIT_DD_050521
+//Libelle: Compteur rapport activité Ambulatoire RAA/unité_DD_050521
+
+SELECT:
+HB3 YEAR(acte.edgr_date) AS ANNEE_ACTE,
+grp.unfo_libelle ||'-'|| ufh.codeLibelle AS UNITE,
+COUNT(DISTINCT patient.id) AS PATIENTS,
+SUM(CASE WHEN raa.traa_dat_export IS NOT NULL THEN 1 ELSE 0 END) AS RAA_EXP,
+ROUND(SUM(CASE WHEN raa.traa_dat_export IS NOT NULL THEN 1 ELSE 0 END)/COUNT(DISTINCT patient.id)) AS MOY_RAAEXP_PATI,
+ROUND( 100*SUM(CASE WHEN type.cage_code LIKE 'R%' THEN 1 ELSE 0 END)/ SUM(CASE WHEN raa.traa_dat_export IS NOT NULL THEN 1 ELSE 0 END)) AS TAUX_REUNION_EXP,
+SUM(CASE WHEN YEAR(patient.dat_cre)=YEAR(acte.edgr_date) THEN 1 ELSE 0 END) AS ACTES_NX_PATI,
+SUM(CASE WHEN type.cage_code LIKE 'E%' THEN 1 ELSE 0 END) AS ACTES_E,
+SUM(CASE WHEN type.cage_code LIKE 'D%' THEN 1 ELSE 0 END) AS ACTES_D,
+SUM(CASE WHEN type.cage_code LIKE 'G%' THEN 1 ELSE 0 END) AS ACTES_G,
+SUM(CASE WHEN type.cage_code LIKE 'A%' THEN 1 ELSE 0 END) AS ACTES_A,
+SUM(CASE WHEN type.cage_code LIKE 'R%' THEN 1 ELSE 0 END) AS ACTES_R,
+SUM(CASE WHEN type.cage_code LIKE '%P' THEN 1 ELSE 0 END) AS ACTES_PRES,
+SUM(CASE WHEN type.cage_code LIKE '%A' THEN 1 ELSE 0 END) AS ACTES_TEL,
+SUM(CASE WHEN type.cage_code LIKE '%V' THEN 1 ELSE 0 END) AS ACTES_VISIO,
+SUM(CASE WHEN catprof.cage_code LIKE 'M%' THEN 1 ELSE 0 END) AS ACTE_MED,
+SUM(CASE WHEN catprof.cage_code LIKE 'I%' THEN 1 ELSE 0 END) AS ACTES_INF,
+SUM(CASE WHEN catprof.cage_code LIKE 'P%' THEN 1 ELSE 0 END) AS ACTES_PSYCHO,
+SUM(CASE WHEN catprof.cage_code LIKE 'A%' THEN 1 ELSE 0 END) AS ACTES_AS,
+SUM(CASE WHEN catprof.cage_code LIKE 'R%' THEN 1 ELSE 0 END) AS ACTES_REED,
+SUM(CASE WHEN catprof.cage_code LIKE 'E%' THEN 1 ELSE 0 END) AS ACTES_EDUC,
+SUM(CASE WHEN catprof.cage_code LIKE 'S%' THEN 1 ELSE 0 END) AS ACTES_AIDESOIN,
+SUM(CASE WHEN catprof.cage_code LIKE 'X%' THEN 1 ELSE 0 END) AS ACTES_X,
+SUM(CASE WHEN catprof.cage_code LIKE 'Y%' THEN 1 ELSE 0 END) AS ACTES_Y,
+SUM(CASE WHEN lieu.cage_code ='L01' THEN 1 ELSE 0 END) AS ACTES_CMP,
+SUM(CASE WHEN lieu.cage_code ='L02' THEN 1 ELSE 0 END) AS ACTES_L02,
+SUM(CASE WHEN lieu.cage_code IN('L03','L08') THEN 1 ELSE 0 END) AS ACTES_MEDICOSOC,
+SUM(CASE WHEN lieu.cage_code IN('L04','L05') THEN 1 ELSE 0 END) AS ACTES_ECOLE_PMI,
+SUM(CASE WHEN lieu.cage_code ='L06' THEN 1 ELSE 0 END) AS ACTES_PRISON,
+SUM(CASE WHEN lieu.cage_code ='L07' THEN 1 ELSE 0 END) AS ACTES_DOMIC,
+SUM(CASE WHEN lieu.cage_code ='L09' THEN 1 ELSE 0 END) AS ACTES_MCO,
+SUM(CASE WHEN lieu.cage_code ='L10' THEN 1 ELSE 0 END) AS ACTES_SAU,
+SUM(CASE WHEN lieu.cage_code ='L11' THEN 1 ELSE 0 END) AS ACTES_CATTP
+
+FROM:
+Ide_patient AS patient
+JOIN patient.ide_sejours AS sejour
+JOIN sejour.bas_etablissement_by_Sejo_id_etab_con AS etab
+JOIN sejour.bas_catalogue_pers_by_Sejo_id_cape_ven AS typsej
+JOIN sejour.bas_uf_by_Sejo_id_unfo_heb_courant AS ufh
+JOIN ufh.bas_uf_by_Unfo_id_unfo_grp AS grp
+JOIN sejour.pms_edgars AS redg
+JOIN redg.pms_edgar_actes AS acte
+JOIN acte.pms_raas AS raa
+JOIN acte.bas_catalogue_gen_by_Edgr_id_cage_nature AS type
+JOIN acte.bas_catalogue_gen_by_Edgr_id_cage_cat_interv AS catprof
+JOIN acte.bas_catalogue_gen_by_Edgr_id_cage_lieu as lieu
+ 
+WHERE:
+etab.id = <ETAB>
+AND patient.pati_nip != '140374'
+AND sejour.sejo_ind_incomplet!=1
+AND sejour.sejo_dat_sup IS NULL
+AND (YEAR(acte.edgr_date) = YEAR(INVITE(D:Acte ayant eu lieu l'année du ))
+     OR YEAR(acte.edgr_date) = YEAR(INVITE(D:Acte ayant eu lieu l'année du ))-1
+     OR YEAR(acte.edgr_date) = YEAR(INVITE(D:Acte ayant eu lieu l'année du ))-2)
+AND ufh.id = INVITE(b:UF_HEB_FILT_VAL:Unité Médicale d'activité)
+			  
+GROUP BY:
+YEAR(acte.edgr_date), grp.unfo_libelle ||'-'|| ufh.codeLibelle
