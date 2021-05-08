@@ -1,0 +1,2 @@
+# hql
+hql queries
