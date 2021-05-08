@@ -1,0 +1,83 @@
+//CODE: CPATI0SEJACTSEJTERMPRESDF_070521
+//Libelle: Compteur pati 0 séjour actif/ttts medicam en cours/séjour terminé_070521
+
+
+SELECT
+HB3 YEAR(current_date) AS ANNEE_ANALYSE,
+COUNT(DISTINCT patient.id) AS PATIENTS_TOUT_SEJTERM,
+COUNT(DISTINCT sejour.id) AS SEJOURS_TERMINES,
+COUNT(DISTINCT prpl.id) AS LIGNE_MEDIC_SANS_FIN
+
+FROM
+Ide_patient AS patient
+JOIN patient.ide_sejours AS sejour
+JOIN sejour.bas_etablissement_by_Sejo_id_etab_con AS etab
+JOIN sejour.pre_prescription_listes as prme
+JOIN prme.pre_prescription_lignes as prpl
+JOIN prpl.pre_prescription_periodes as periode
+JOIN prme.bas_catalogue_gen_by_Prme_id_cage_typ_prescript as type
+JOIN prme.bas_catalogue_gen_by_Prme_id_cage_typ_trt as trt
+	
+WHERE
+etab.id = <ETAB>
+AND sejour.sejo_dat_sup is null
+AND sejour.sejo_ind_incomplet != '1'
+AND patient.pati_nip <> '140374'
+AND patient.dat_cre BETWEEN INVITE(D: patients créés entre le ) AND INVITE(D: et le )
+AND sejour.sejo_dat_fin IS NOT NULL
+AND periode.prpe_dat_fin_pos IS NULL
+AND trt.id IN('1412','1415','6405')
+AND type.id='1424'
+AND prme.prme_ind_pre_val = '1'
+AND NOT EXISTS(SELECT sejour2.id
+    FROM patient.ide_sejours AS sejour2
+    JOIN sejour2.bas_etablissement_by_Sejo_id_etab_con AS etab2
+	WHERE etab2.id = etab.id
+	AND sejour2.sejo_dat_sup is null
+    AND sejour2.sejo_ind_incomplet != '1'
+    AND sejour2.sejo_dat_fin IS NULL)
+CODE: CPATI0SEJACTSEJTERMPRESDF_070521
+Libelle: Compteur pati 0 séjour actif/ttts medicam en cours/séjour terminé_070521
+type: REQUETE =====================================> test le 070521: ok
+=> au 7 mai 2021 : 10826 patients avec 13914 séjours terminés, pour 65587 lignes sans date de fin sur séjour terminé
+BASE=CPATISEJTERMPRESDF_080720
+
+SELECT:
+HB3 YEAR(current_date) AS ANNEE_ANALYSE,
+COUNT(DISTINCT patient.id) AS PATIENTS_TOUT_SEJTERM,
+COUNT(DISTINCT sejour.id) AS SEJOURS_TERMINES,
+COUNT(DISTINCT prpl.id) AS LIGNE_MEDIC_SANS_FIN
+
+FROM:
+Ide_patient AS patient
+JOIN patient.ide_sejours AS sejour
+JOIN sejour.bas_etablissement_by_Sejo_id_etab_con AS etab
+JOIN sejour.pre_prescription_listes as prme
+JOIN prme.pre_prescription_lignes as prpl
+JOIN prpl.pre_prescription_periodes as periode
+JOIN prme.bas_catalogue_gen_by_Prme_id_cage_typ_prescript as type
+JOIN prme.bas_catalogue_gen_by_Prme_id_cage_typ_trt as trt
+	
+WHERE:
+etab.id = <ETAB>
+AND sejour.sejo_dat_sup is null
+AND sejour.sejo_ind_incomplet != '1'
+AND patient.pati_nip <> '140374'
+AND patient.dat_cre BETWEEN INVITE(D: patients créés entre le ) AND INVITE(D: et le )
+AND sejour.sejo_dat_fin IS NOT NULL
+AND periode.prpe_dat_fin_pos IS NULL
+AND trt.id IN('1412','1415','6405')
+AND type.id='1424'
+AND prme.prme_ind_pre_val = '1'
+AND NOT EXISTS(SELECT sejour2.id
+    FROM patient.ide_sejours AS sejour2
+    JOIN sejour2.bas_etablissement_by_Sejo_id_etab_con AS etab2
+	WHERE etab2.id = etab.id
+	AND sejour2.sejo_dat_sup is null
+    AND sejour2.sejo_ind_incomplet != '1'
+    AND sejour2.sejo_dat_fin IS NULL)
+
+GROUP BY:
+YEAR(current_date)
+GROUP BY
+YEAR(current_date)
