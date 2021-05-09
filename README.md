@@ -1,5 +1,5 @@
 # hql
-hql queries
+hql queries : Hibernate Query Language
 
 datamodel = digital patient record software, Hopital Manager, (Softway Medical)
 various data extractions
