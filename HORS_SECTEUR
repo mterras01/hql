@@ -1,6 +1,5 @@
-CODE: LPATIAVECADRHORSREGARA_160521
-Libelle: Liste des Patients BASE AVEC adresse hors région ARA_160521
-type: REQUETE =====================================> test le 160521:  ok
+// CODE: LPATIAVECADRHORSREGARA_160521
+// Libelle: Liste des Patients BASE AVEC adresse hors région ARA_160521
 
 SELECT:
 HB3 sejourtest.sejo_id_sejo, sejourtest.sejo_id_sejo,
