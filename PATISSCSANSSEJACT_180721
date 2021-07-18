@@ -1,0 +1,29 @@
+SELECT
+HB3 TO_CHAR(current_date,'dd-mm-yyyy') AS DATE_EXTRACTION,
+patient.pati_nip AS PATIENT,
+modelegal.mlgl_dat_fin_val ||'-'|| modelegal.mlgl_dat_fin_val AS DEB_FIN_MODLEG,
+mesure.cage_code ||'-'|| mesure.cage_libelle AS MODE8LEGAL,
+(SELECT MAX(sejour.sejo_dat_fin)
+    FROM patient.ide_sejours AS sejour
+    WHERE sejour.sejo_dat_sup IS NULL
+    AND sejour.sejo_ind_incomplet != '1') AS DERSEJ_ACTIF
+
+FROM
+Ide_patient AS patient
+JOIN patient.bas_etablissement AS etab
+JOIN patient.pms_mode_legal_by_Traa_id_mlgl AS modelegal
+JOIN modelegal.bas_catalogue_gen_by_Mlgl_id_cage as mesure
+    
+WHERE
+etab.id = <ETAB>
+AND patient.pati_nip != '140374'
+AND mesure.cage_code != 'SL'
+AND modelegal.mlgl_dat_fin_val IS NULL
+AND NOT EXISTS(SELECT sejour.id
+    FROM patient.ide_sejours AS sejour
+    WHERE sejour.sejo_dat_sup IS NULL
+    AND sejour.sejo_ind_incomplet != '1'
+    AND sejour.sejo_dat_fin IS NULL)
+
+GROUP BY
+ORDER BY TO_CHAR(current_date,'dd-mm-yyyy')
