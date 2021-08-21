@@ -1,0 +1,39 @@
+SELECT
+HB3 YEAR(cal.dcal_date) AS ANNEE,
+um.unme_code ||'-'|| um.unme_libelle AS UNITE_MED,
+COUNT(DISTINCT patient.id) AS FILE_ACTIVE,
+SUM(CASE WHEN YEAR(patient.dat_cre) = YEAR(cal.dcal_date) THEN 1 ELSE 0 END) AS NX_PATIENTS
+
+FROM
+Sid_psy_calendar AS cal
+,Sid_psy_calendar AS cal2
+,Ide_patient AS patient
+JOIN patient.bas_etablissement AS etab
+,Sad_um AS um
+
+WHERE
+etab.id = <ETAB>
+AND patient.pati_nip != '140374'
+AND cal.dcal_date = INVITE(D: Patients de la file active globale du )
+AND cal2.dcal_date = INVITE(D: au )
+AND YEAR(cal.dcal_date)=YEAR(cal2.dcal_date)
+AND um.id = INVITE(b:UM_FILTRES: File active de cette Unité )
+AND (EXISTS(SELECT raa.id
+    FROM Pms_raa AS raa
+    JOIN raa.sad_um AS um2
+    JOIN raa.ide_sejour AS sejour
+    WHERE sejour.ide_patient = patient.id
+    AND um2.id = um
+    AND raa.traa_dat_export IS NOT NULL
+    AND raa.traa_date BETWEEN cal.dcal_date AND cal2.dcal_date )
+    OR EXISTS(SELECT rps.id
+    FROM Pms_rps_psy AS rps
+    JOIN rps.sad_um AS um2
+    JOIN rps.ide_sejour as sejour
+    WHERE sejour.ide_patient = patient.id
+    AND um2.id = um
+    AND rps.tpsy_dat_export IS NOT NULL
+    AND rps.tpsy_dat_sor BETWEEN cal.dcal_date AND (cal2.dcal_date+1) ) )
+
+ORDER BY
+YEAR(cal.dcal_date), um.unme_code ||'-'|| um.unme_libelle
