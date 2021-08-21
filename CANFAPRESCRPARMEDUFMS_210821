@@ -1,0 +1,30 @@
+SELECT
+HB3 YEAR(prme.prme_dat_deb_pre) AS ANNEE,
+util.util_login ||'-'|| util.util_nom AS MEDECIN,
+COUNT(DISTINCT patient.id) AS FA_GLOBALE_FO,
+COUNT(DISTINCT prpl.id) AS NB_LIGNES_PRESCR,
+SUM(CASE WHEN type.id = '1424' THEN 1 ELSE 0 END) AS NB_PRESCR_MEDICAM,
+SUM(CASE WHEN type.id IN('2479','6549') THEN 1 ELSE 0 END) AS NB_SOINS,
+SUM(CASE WHEN type.id = '1425' THEN 1 ELSE 0 END) AS NB_PRESCR_BIO,
+SUM(CASE WHEN type.id = '1423' THEN 1 ELSE 0 END) AS NB_PRESCR_ACTES
+
+FROM
+Ide_patient AS patient
+JOIN patient.bas_etablissement AS etab
+,Bas_utilisateur as util
+JOIN util.bas_prof_appl_utils AS util_prof
+JOIN util_prof.bas_profil AS profil
+JOIN patient.pre_prescription_listes as prme
+JOIN prme.pre_prescription_lignes as prpl
+JOIN prme.bas_catalogue_gen_by_Prme_id_cage_typ_prescript as type
+
+WHERE
+etab.id = <ETAB>
+AND patient.pati_nip != '140374'
+AND prpl.prpl_med_val_statut IN ('0','2')
+AND prme.prme_dat_deb_pre BETWEEN INVITE(D: Prescriptions saisies entre le ) AND INVITE(D: et le )
+AND profil.prof_libelle LIKE 'CPA_S_Médecin_Non_Psychiatre%'
+AND util.id IN(prpl.uti_cre, prpl.uti_mod)
+
+GROUPE BY
+YEAR(prme.prme_dat_deb_pre), util.util_login ||'-'|| util.util_nom
