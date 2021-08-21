@@ -1,0 +1,24 @@
+SELECT
+HB3 YEAR(obse.obse_dat_fiche) AS ANNEE,
+util.util_login ||'-'|| util.util_nom AS MEDECIN,
+COUNT(DISTINCT patient.id) AS FA_GLOBALE_FO,
+COUNT(DISTINCT obse.id) AS NB_FO
+
+FROM
+Ide_patient AS patient
+JOIN patient.bas_etablissement AS etab
+,Bas_utilisateur as util
+JOIN util.bas_prof_appl_utils AS util_prof
+JOIN util_prof.bas_profil AS profil
+JOIN patient.med_fic_observations AS obse
+JOIN obse.ide_medecin as auteur
+
+WHERE
+etab.id = <ETAB>
+AND patient.pati_nip != '140374'
+AND obse.obse_dat_fiche BETWEEN INVITE(D: Observations saisies entre le ) AND INVITE(D: et le )
+AND profil.prof_libelle LIKE 'CPA_S_Médecin_Non_Psychiatre%'
+AND util.ide_medecin.id = auteur.id
+
+GROUPE BY
+YEAR(obse.obse_dat_fiche), util.util_login ||'-'|| util.util_nom
