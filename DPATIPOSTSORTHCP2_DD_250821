@@ -1,0 +1,108 @@
+SELECT
+HB3 patient.pati_nip AS NIPP,
+patient.pati_sexe AS SEXE,
+(YEAR(sejour.sejo_dat_fin) - YEAR(patient.pati_dat_nai)) AS AGE_SORTIE,
+YEAR(sejour.sejo_dat_fin) AS ANNEE_SORTIE,
+SUBSTR(dia.dsai_code_d,1,2) AS DER_DP_H,
+CASE WHEN NOT EXISTS (SELECT acte.id
+    FROM patient.pms_edgars AS redg
+    JOIN redg.pms_edgar_actes AS acte
+    JOIN acte.bas_catalogue_gen_by_Edgr_id_cage_nature as type
+    JOIN acte.bas_catalogue_gen_by_Edgr_id_cage_lieu AS lieu
+    WHERE acte.edgr_date > sejour.sejo_dat_fin) THEN '1' ELSE '0' END AS PATI_0ACTEDGARPOSTSDH,
+CASE WHEN NOT EXISTS (SELECT acte.id
+    FROM patient.pms_edgars AS redg
+    JOIN redg.pms_edgar_actes AS acte
+    JOIN acte.bas_catalogue_gen_by_Edgr_id_cage_nature as type
+    JOIN acte.bas_catalogue_gen_by_Edgr_id_cage_lieu AS lieu
+    WHERE SUBSTR(type.cage_code,1,1) IN('E','G','A')
+    AND lieu.cage_code NOT IN('L09','L10')
+    AND acte.edgr_date > sejour.sejo_dat_fin) THEN '1' ELSE '0' END AS PATI_0ACTEGASPOSTSDH,
+CASE WHEN NOT EXISTS (SELECT acte.id
+    FROM patient.pms_edgars AS redg
+    JOIN redg.pms_edgar_actes AS acte
+    JOIN acte.bas_catalogue_gen_by_Edgr_id_cage_nature as type
+    JOIN acte.bas_catalogue_gen_by_Edgr_id_cage_lieu AS lieu
+    WHERE SUBSTR(type.cage_code,1,1) IN('E','G','A')
+    AND lieu.cage_code IN('L09','L10')
+    AND acte.edgr_date > sejour.sejo_dat_fin) THEN '1' ELSE '0' END AS PATI_0ACTEGASAUPSYLPOSTSDH,
+CASE WHEN NOT EXISTS (SELECT mouv2.id
+    FROM patient.ide_sejours AS sejour2
+    JOIN sejour2.bas_catalogue_pers_by_Sejo_id_cape_ven AS typsej2
+    JOIN sejour2.ide_mouvements AS mouv2
+    JOIN mouv2.bas_catalogue_gen_by_Mouv_id_cage AS cage2
+    WHERE sejour2.sejo_ind_incomplet != 1
+    AND sejour2.sejo_dat_sup IS NULL
+    AND UPPER(typsej2.cape_code) IN('J','N')
+    AND cage2.cage_code = 'C'
+    AND mouv2.mouv_dat_mou > sejour.sejo_dat_fin) THEN '1' ELSE '0' END AS PATI_0VENJNPOSTSDH,
+CASE WHEN NOT EXISTS(SELECT isre.id
+    FROM Med_isolement_registre AS isre
+    inner join isre.med_isolement_mesure_by_Isre_id_isme AS isme
+    inner join isme.ide_sejour_by_Isme_id_sejo AS sejo
+    JOIN sejo.bas_catalogue_pers_by_Sejo_id_cape_ven AS typesej
+    JOIN sejo.bas_uf_by_Sejo_id_unfo_med_courant AS ufm
+    inner join isme.med_isolement_contentions_by_Isco_id_isme AS isco
+    inner join isme.ide_patient_by_Isme_id_pati AS pati
+    JOIN pati.bas_etablissement AS etab2
+    WHERE pati.id = patient
+    AND etab2.id = etab
+    AND isme.isme_dat_invalid IS NULL
+    AND ( ( isco.isco_eta_mesure = 'I' and isco.isco_dat_validation is not null)
+       or isco.isco_eta_mesure in ('D','R','C')
+        )
+    AND NOT EXISTS(select isco2.id 
+                from Med_isolement_contention as isco2
+                where isco2.med_isolement_mesure_by_Isco_id_isme.id = isme.id
+                and isco2.isco_dat_validation > isco.isco_dat_validation)) THEN '1' ELSE '0' END AS SEJ_SANS_ICM,
+CASE WHEN NOT EXISTS(SELECT prpl.id 
+     FROM Pre_prescription_acte_examen as ppae
+     join ppae.pre_prescription_ligne_by_Ppae_id_prpl as prpl
+     join prpl.pre_prescription_liste as prme
+     join prme.ide_patient as patisi
+     join prpl.pre_prescription_periodes as periode
+     ,Bas_param_acte_medical as acte
+	 WHERE patisi.id = patient.id
+	 AND prpl.prpl_id_objet = acte.id
+     AND acte.paam_code LIKE ('SI_SOINS_INTENSIFS%')
+     AND prme.prme_ind_pre_val = '1'
+     AND NVL( ((periode.prpe_dat_fin_pos-periode.prpe_dat_deb_pos)*24), '1') > (1/12) ) THEN '1' ELSE '0' END AS SEJ_SANS_SI,
+CASE WHEN NOT EXISTS(SELECT mesure.id
+     FROM patient.pms_mode_legals AS modelegal
+     JOIN modelegal.bas_catalogue_gen_by_Mlgl_id_cage AS mesure
+     WHERE mesure.cage_code != 'SL') THEN '1' ELSE '0' END AS SANS_SSC
+
+FROM
+Ide_patient AS patient
+JOIN patient.ide_sejours AS sejour
+JOIN sejour.bas_catalogue_pers_by_Sejo_id_cape_ven AS typesej
+JOIN sejour.bas_etablissement_by_Sejo_id_etab_con AS etab
+JOIN sejour.sad_recueils AS rec
+JOIN rec.sad_diag_saisis as dia
+
+WHERE
+etab.id = <ETAB>
+AND patient.pati_nip != '140374'
+AND sejour.sejo_ind_incomplet != 1
+AND sejour.sejo_dat_sup IS NULL
+AND typesej.cape_code = 'H'
+AND sejour.sejo_dat_fin = (SELECT MAX(sejour2.sejo_dat_fin)
+    FROM patient.ide_sejours AS sejour2
+    JOIN sejour2.bas_catalogue_pers_by_Sejo_id_cape_ven AS typesej2
+    JOIN sejour2.bas_etablissement_by_Sejo_id_etab_con AS etab2
+    WHERE etab2.id = etab
+    AND sejour2.sejo_ind_incomplet != 1
+    AND sejour2.sejo_dat_sup IS NULL
+    AND typesej2.cape_code = 'H'
+    AND sejour2.sejo_dat_fin <= (current_date-1095))
+AND sejour.sejo_dat_fin <= (current_date-1095)
+AND dia.dsai_dat_con = (SELECT MAX(dia2.dsai_dat_con) 
+    FROM patient.sad_recueils AS rec2
+    JOIN rec2.sad_diag_saisis as dia2
+    WHERE dia2.dsai_typ_dia ='DP'
+    AND dia2.dsai_code_d LIKE 'F%')
+AND dia.dsai_typ_dia ='DP'
+AND dia.dsai_code_d LIKE 'F%'
+
+GROUP BY
+ORDER BY YEAR(sejour.sejo_dat_fin), patient.pati_nip
