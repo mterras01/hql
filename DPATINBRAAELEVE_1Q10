@@ -1,0 +1,25 @@
+SELECT
+HB3 YEAR(raa.traa_date) AS ANNEE,
+patient.pati_nip AS NIP,
+COUNT(DISTINCT raa.id) AS RAA,
+COUNT(DISTINCT cal.dcal_date) AS NBMOIS_RAA,
+(COUNT(DISTINCT raa.id)/COUNT(DISTINCT cal.dcal_date)) AS MOYMENS__RAA
+
+FROM
+Sid_psy_calendar AS cal
+,Ide_patient AS patient
+JOIN patient.pms_edgars AS redg
+JOIN redg.pms_edgar_actes AS acte
+JOIN acte.pms_raas AS raa
+JOIN patient.bas_etablissement AS etab
+
+WHERE
+etab.id = <ETAB>
+AND patient.pati_nip != '140374'
+AND YEAR(raa.traa_date) = YEAR( INVITE(D: Recueils ambulatoires l'année du ) )
+AND TO_CHAR(cal.dcal_date,'dd') = '01' 
+AND TO_CHAR(cal.dcal_date,'mm') = TO_CHAR(raa.traa_date,'mm')
+AND TO_CHAR(cal.dcal_date,'yyyy') = TO_CHAR(raa.traa_date,'yyyy')
+
+GROUP BY
+YEAR(raa.traa_date), patient.pati_nip HAVING (COUNT(DISTINCT raa.id)/COUNT(DISTINCT cal.dcal_date))>=30
