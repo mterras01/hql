@@ -1,0 +1,43 @@
+SELECT:
+HB3 patient.pati_nip AS NIP,
+COUNT(DISTINCT a.id) AS RAA,
+COUNT(DISTINCT cal.dcal_date) AS JOURS_RAA,
+SUM(CASE WHEN TO_CHAR(a.edgr_date,'mm')='01' THEN 1 ELSE 0 END) AS M01,
+SUM(CASE WHEN TO_CHAR(a.edgr_date,'mm')='02' THEN 1 ELSE 0 END) AS M02,
+SUM(CASE WHEN TO_CHAR(a.edgr_date,'mm')='03' THEN 1 ELSE 0 END) AS M03,
+SUM(CASE WHEN TO_CHAR(a.edgr_date,'mm')='04' THEN 1 ELSE 0 END) AS M04,
+SUM(CASE WHEN TO_CHAR(a.edgr_date,'mm')='05' THEN 1 ELSE 0 END) AS M05,
+SUM(CASE WHEN TO_CHAR(a.edgr_date,'mm')='06' THEN 1 ELSE 0 END) AS M06,
+SUM(CASE WHEN TO_CHAR(a.edgr_date,'mm')='07' THEN 1 ELSE 0 END) AS M07,
+SUM(CASE WHEN TO_CHAR(a.edgr_date,'mm')='08' THEN 1 ELSE 0 END) AS M08,
+SUM(CASE WHEN TO_CHAR(a.edgr_date,'mm')='09' THEN 1 ELSE 0 END) AS M09,
+SUM(CASE WHEN TO_CHAR(a.edgr_date,'mm')='10' THEN 1 ELSE 0 END) AS M10,
+SUM(CASE WHEN TO_CHAR(a.edgr_date,'mm')='11' THEN 1 ELSE 0 END) AS M11,
+SUM(CASE WHEN TO_CHAR(a.edgr_date,'mm')='12' THEN 1 ELSE 0 END) AS M12
+
+FROM:
+Sid_psy_calendar AS cal
+,Sid_psy_calendar AS cal2
+,Ide_patient AS patient
+JOIN patient.bas_etablissement AS etab
+JOIN patient.pms_edgars AS redg
+JOIN redg.pms_edgar_actes AS a
+JOIN a.pms_raas as raa
+JOIN a.bas_catalogue_gen_by_Edgr_id_cage_nature as type
+JOIN a.bas_catalogue_gen_by_Edgr_id_cage_lieu as lieu
+
+WHERE:
+etab.id = <ETAB>
+AND patient.pati_nip != '140374'
+AND cal2.dcal_date  = INVITE(D: Patient avec Acte EDGAR en lieux de soins <=1 acte mensuel l'année du )
+AND YEAR(a.edgr_date) = YEAR(cal2.dcal_date)
+AND cal.dcal_date = TRUNC(a.edgr_date)
+AND (YEAR(cal2.dcal_date)-YEAR(patient.pati_dat_nai)) >= TO_NUMBER(INVITE(n: mettre 18 pour les Adultes MAJEURS ))
+AND (YEAR(cal2.dcal_date)-YEAR(patient.pati_dat_nai)) < TO_NUMBER(INVITE(n: mettre 18 pour les MINEURS ))
+AND SUBSTR(type.cage_code,1,1) IN('E','G','A')
+AND lieu.cage_code NOT IN('L09', 'L10', 'L06')
+AND lieu.cage_code IN('L01', 'L02', 'L11')
+AND raa.traa_dat_export IS NOT NULL
+
+GROUP BY:
+patient.pati_nip HAVING COUNT(DISTINCT a.id)<13
