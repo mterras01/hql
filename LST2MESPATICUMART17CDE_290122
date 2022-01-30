@@ -1,0 +1,99 @@
+SELECT
+HB3 sejo.sejo_id_sejo,sejo.sejo_id_sejo, TO_CHAR(current_date,'dd-mm-yyyy HH24:Mi') AS _1_JOUR_ANALYSE,
+ufm.codeLibelle AS _2_UNITE,
+pati.pati_nip AS _3_IPP_PATIENT,
+isre.isre_typ_registre || '=' || CASE WHEN isre.isre_typ_registre = 'A' THEN 'ISOLEMENT CHB DEDIEE' ELSE CASE WHEN isre.isre_typ_registre = 'B' THEN 'ISOLEMENT CHB NON DEDIEE' ELSE CASE WHEN isre.isre_typ_registre = 'C' THEN 'CONTENTION AU LIT' ELSE CASE WHEN isre.isre_typ_registre = 'E' THEN 'CONTENTION AMBULATOIRE' ELSE CASE WHEN isre.isre_typ_registre = 'D' THEN 'CONTENTION NI C NI E' END END END END END AS _4_TYPE_MES,
+'Début le ' || TO_CHAR(isre.isre_dat_deb,'dd-mm-yyyy HH24:Mi') AS _5_DEBUT_MES,
+(SELECT MAX(compo.docp_dat_vlr)
+    FROM pati.bas_documents AS docu
+    JOIN docu.bur_document_compos AS compo
+    JOIN compo.bur_modele_type_by_Docp_id_moty_corps AS modele
+    WHERE compo.docp_typ_document = '0'
+    AND compo.docp_ind_typ_sup is null
+    AND compo.docp_ind_incomplet='0'
+    AND modele.moty_code='INFORENOUVICJLDPROC') AS _6_DERN_INFO_JLD,
+ROUND(NVL(isre.isre_dat_fin,current_date)-isre.isre_dat_deb,2) AS _7_JOURS_CUMULES,
+ROUND((NVL(isre.isre_dat_fin,current_date)-isre.isre_dat_deb)*24,2) AS _8_HEURES_CUMULEES,
+(SELECT TO_CHAR(WM_CONCAT( TO_CHAR(isre2.isre_dat_fin-isre2.isre_dat_deb,'0000.00')))
+     FROM Med_isolement_registre as isre2
+     inner join isre2.med_isolement_mesure_by_Isre_id_isme as isme2
+     inner join isme2.ide_sejour_by_Isme_id_sejo as sejo2
+     JOIN sejo2.bas_uf_by_Sejo_id_unfo_med_courant as ufm2
+     inner join isme2.med_isolement_contentions_by_Isco_id_isme as isco2
+     inner join isme2.ide_patient_by_Isme_id_pati as pati2
+     WHERE pati2.id = pati
+     AND sejo2.sejo_dat_sup is null
+     AND sejo2.sejo_ind_incomplet != '1'
+     AND isre2.isre_typ_registre IN ('C','D','E')
+     AND isre2.isre_dat_fin IS NOT NULL
+     AND isre2.isre_dat_fin > (current_date-15)
+     AND isme2.isme_dat_invalid IS NULL
+     and ( ( isco2.isco_eta_mesure = 'I' and isco2.isco_dat_validation is not null)
+           or isco2.isco_eta_mesure in ('R','C')
+         )
+     and not exists (select isco3.id
+         from Med_isolement_contention as isco3
+         where isco3.med_isolement_mesure_by_Isco_id_isme.id =isme2.id
+         and isco3.isco_dat_validation > isco2.isco_dat_validation)
+     AND ufm2.unfo_code NOT IN('2942')) AS _9_CUMULJ_15DERJ,
+(SELECT TO_CHAR(WM_CONCAT( TO_CHAR(((isre2.isre_dat_fin-isre2.isre_dat_deb)*24),'0000.00')))
+     FROM Med_isolement_registre as isre2
+     inner join isre2.med_isolement_mesure_by_Isre_id_isme as isme2
+     inner join isme2.ide_sejour_by_Isme_id_sejo as sejo2
+     JOIN sejo2.bas_uf_by_Sejo_id_unfo_med_courant as ufm2
+     inner join isme2.med_isolement_contentions_by_Isco_id_isme as isco2
+     inner join isme2.ide_patient_by_Isme_id_pati as pati2
+     WHERE pati2.id = pati
+     AND sejo2.sejo_dat_sup is null
+     AND sejo2.sejo_ind_incomplet != '1'
+     AND isre2.isre_typ_registre IN ('C','D','E')
+     AND isre2.isre_dat_fin IS NOT NULL
+     AND isre2.isre_dat_fin > (current_date-15)
+     AND isme2.isme_dat_invalid IS NULL
+     and ( ( isco2.isco_eta_mesure = 'I' and isco2.isco_dat_validation is not null)
+           or isco2.isco_eta_mesure in ('R','C')
+         )
+     and not exists (select isco3.id
+         from Med_isolement_contention as isco3
+         where isco3.med_isolement_mesure_by_Isco_id_isme.id =isme2.id
+         and isco3.isco_dat_validation > isco2.isco_dat_validation)
+     AND ufm2.unfo_code NOT IN('2942')) AS _10_CUMULH_15DERJ,
+COUNT(*)
+
+FROM
+Med_isolement_registre as isre
+inner join isre.med_isolement_mesure_by_Isre_id_isme as isme
+inner join isme.ide_sejour_by_Isme_id_sejo as sejo
+JOIN sejo.bas_catalogue_pers_by_Sejo_id_cape_ven AS typesej
+JOIN sejo.bas_uf_by_Sejo_id_unfo_med_courant as ufm
+inner join isme.med_isolement_contentions_by_Isco_id_isme as isco
+inner join isme.ide_patient_by_Isme_id_pati as pati
+JOIN pati.bas_etablissement AS etab
+
+WHERE
+etab.id = <ETAB>
+AND pati.pati_nip != '140374'
+AND sejo.sejo_dat_sup is null
+AND sejo.sejo_ind_incomplet != '1'
+AND isre.isre_typ_registre IN ('C','D','E')
+AND isre.isre_dat_fin IS NULL
+AND isme.isme_dat_invalid IS NULL
+and ( ( isco.isco_eta_mesure = 'I' and isco.isco_dat_validation is not null)
+       or isco.isco_eta_mesure in ('D','R','C')
+    )
+and not exists (select isco2.id 
+                from Med_isolement_contention as isco2
+                where isco2.med_isolement_mesure_by_Isco_id_isme.id = isme.id
+                and isco2.isco_dat_validation > isco.isco_dat_validation)
+AND ufm.unfo_code NOT IN('2942')
+AND EXISTS(SELECT sejour.id
+    FROM pati.ide_sejours AS sejour
+    JOIN sejour.bas_catalogue_pers_by_Sejo_id_cape_ven AS typesej2
+    WHERE sejour.sejo_dat_sup is null
+    AND sejour.sejo_ind_incomplet != '1'
+    AND typesej2.cape_code = 'H'
+    AND sejour.sejo_dat_fin IS NULL)
+   
+   
+GROUP BY
+sejo.sejo_id_sejo,TO_CHAR(current_date,'dd-mm-yyyy HH24:Mi'), ufm.codeLibelle, pati.pati_nip, isre.isre_typ_registre, 'Début le ' || TO_CHAR(isre.isre_dat_deb,'dd-mm-yyyy HH24:Mi'), ROUND(NVL(isre.isre_dat_fin,current_date)-isre.isre_dat_deb,2), ROUND((NVL(isre.isre_dat_fin,current_date)-isre.isre_dat_deb)*24,2), pati.id ORDER BY pati.pati_nip
