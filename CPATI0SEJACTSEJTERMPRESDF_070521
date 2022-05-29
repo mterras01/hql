@@ -79,5 +79,3 @@ AND NOT EXISTS(SELECT sejour2.id
 
 GROUP BY:
 YEAR(current_date)
-GROUP BY
-YEAR(current_date)
